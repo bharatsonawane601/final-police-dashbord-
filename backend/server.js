@@ -15,7 +15,7 @@ const auth = require('./auth');
 const { requireAuth, requireRole, requireAdmin } = require('./authMiddleware');
 
 const app = express();
-const PORT = 3000;
+const PORT = 5000;
 
 // ═══════════════════════════════════════════════════════════════
 //  Security Middleware
