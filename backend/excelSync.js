@@ -32,13 +32,17 @@ function loadExcelIntoDB(excelPath) {
 
         const insertMany = database.transaction((rows) => {
             for (const row of rows) {
+                // Normalize keys by trimming whitespace
+                const r = {};
+                for (const key in row) r[key.trim()] = row[key];
+
                 insertStmt.run({
-                    year: parseInt(row['Year'] || row['year'] || 0),
-                    month: parseInt(row['Month'] || row['month'] || 0),
-                    police_station: row['Police Station'] || row['police station'] || '',
-                    crime_type: row['Crime Type'] || row['crime type'] || '',
-                    under_investigation: parseInt(row['Under Investigation'] || row['under investigation'] || 0),
-                    closed: parseInt(row['Closed'] || row['closed'] || 0)
+                    year: parseInt(r['Year'] || r['year'] || r['वर्षे'] || r['वर्ष'] || 0) || 0,
+                    month: parseInt(r['Month'] || r['month'] || r['महिना'] || 0) || 0,
+                    police_station: r['Police Station'] || r['police station'] || r['पोलीस स्टेशन नांव'] || r['पोलीस स्टेशन'] || '',
+                    crime_type: r['Crime Type'] || r['crime type'] || r['गुन्हयाचा प्रकार  हेड (वर्गवारी)'] || r['गुन्हयाचा प्रकार हेड (वर्गवारी)'] || r['गुन्हयाचा प्रकार'] || '',
+                    under_investigation: parseInt(r['Registered Offence'] || r['registered offence'] || r['Ragisterd Offence'] || r['ragisterd offence'] || r['Under Investigation'] || r['under investigation'] || r['दाखल'] || 0) || 0,
+                    closed: parseInt(r['Detected'] || r['detected'] || r['Closed'] || r['closed'] || r['उघड'] || 0) || 0
                 });
             }
         });
@@ -70,8 +74,8 @@ function writeBackToExcel(excelPath) {
             'Month': r.month,
             'Police Station': r.police_station,
             'Crime Type': r.crime_type,
-            'Under Investigation': r.under_investigation,
-            'Closed': r.closed
+            'Registered Offence': r.under_investigation,
+            'Detected': r.closed
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -84,8 +88,8 @@ function writeBackToExcel(excelPath) {
             { wch: 6 },   // Month
             { wch: 20 },  // Police Station
             { wch: 25 },  // Crime Type
-            { wch: 20 },  // Under Investigation
-            { wch: 10 }   // Closed
+            { wch: 20 },  // Registered Offence
+            { wch: 10 }   // Detected
         ];
 
         XLSX.writeFile(workbook, excelPath);

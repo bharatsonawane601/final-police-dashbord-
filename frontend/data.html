@@ -226,8 +226,8 @@
                                 <th data-t="thMonth">Month</th>
                                 <th data-t="thStation">Police Station</th>
                                 <th data-t="thCrimeType">Crime Type</th>
-                                <th data-t="thInvestigation">Under Investigation</th>
-                                <th data-t="thClosed">Closed</th>
+                                <th data-t="thInvestigation">Registered Offence</th>
+                                <th data-t="thClosed">Detected</th>
                                 <th data-t="thActions">Actions</th>
                             </tr>
                         </thead>
@@ -313,7 +313,7 @@
                                 <li data-value="Kranti Chowk">Kranti Chowk</li>
                                 <li data-value="Vedant Nagar">Vedant Nagar</li>
                                 <li data-value="Begumpura">Begumpura</li>
-                                <li data-value="Chawni">Chawni</li>
+                                <li data-value="Chhawni">Chhawni</li>
                                 <li data-value="Waluj">Waluj</li>
                                 <li data-value="MIDC Waluj">MIDC Waluj</li>
                                 <li data-value="Daulatabad">Daulatabad</li>
@@ -324,15 +324,42 @@
                 </div>
                 <div class="form-group">
                     <label data-t="thCrimeType">Crime Type</label>
-                    <input type="text" id="formCrimeType" required>
+                    <input type="hidden" id="formCrimeType" required>
+                    <div class="custom-dropdown" id="crimeTypeDropdown">
+                        <button type="button" class="dropdown-trigger" id="crimeDropdownTrigger">
+                            <svg class="dropdown-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                            </svg>
+                            <span class="dropdown-trigger-text">— Select Crime Type —</span>
+                            <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="crimeDropdownMenu">
+                            <div class="dropdown-search-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input type="text" class="dropdown-search" id="crimeDropdownSearch"
+                                    placeholder="Search crime type..." autocomplete="off">
+                            </div>
+                            <ul class="dropdown-options" id="crimeDropdownOptions"></ul>
+                            <div class="dropdown-empty" id="crimeDropdownEmpty" style="display:none">No crime types found</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label data-t="thInvestigation">Under Investigation</label>
+                        <label data-t="thInvestigation">Registered Offence</label>
                         <input type="number" id="formInvestigation" value="0" min="0">
                     </div>
                     <div class="form-group">
-                        <label data-t="thClosed">Closed</label>
+                        <label data-t="thClosed">Detected</label>
                         <input type="number" id="formClosed" value="0" min="0">
                     </div>
                 </div>

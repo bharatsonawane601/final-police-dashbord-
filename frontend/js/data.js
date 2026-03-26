@@ -182,6 +182,7 @@ function bindEvents() {
     document.getElementById('btnReload').addEventListener('click', handleReload);
 
     initStationDropdown();
+    initCrimeTypeDropdown();
 }
 
 // ─── Custom Station Dropdown ─────────────────────────────────
@@ -276,6 +277,112 @@ function setStationDropdownValue(value) {
 
     if (options) {
         options.querySelectorAll('li').forEach(li => {
+            li.classList.toggle('selected', li.dataset.value === value);
+            li.classList.remove('hidden');
+        });
+    }
+}
+
+// ─── Custom Crime Type Dropdown ──────────────────────────────
+function initCrimeTypeDropdown() {
+    const trigger = document.getElementById('crimeDropdownTrigger');
+    const menu = document.getElementById('crimeDropdownMenu');
+    const search = document.getElementById('crimeDropdownSearch');
+    const optionsList = document.getElementById('crimeDropdownOptions');
+    const empty = document.getElementById('crimeDropdownEmpty');
+    const hidden = document.getElementById('formCrimeType');
+    if (!trigger || !menu) return;
+
+    // Populate crime types from CRIME_TYPE_EN (defined in translations.js)
+    const crimeTypes = typeof CRIME_TYPE_EN !== 'undefined' ? Object.keys(CRIME_TYPE_EN) : [];
+    optionsList.innerHTML = '';
+    crimeTypes.forEach(ct => {
+        const li = document.createElement('li');
+        li.dataset.value = ct;
+        li.textContent = ct;
+        optionsList.appendChild(li);
+    });
+
+    function openDropdown() {
+        trigger.classList.add('open');
+        menu.classList.add('open');
+        search.value = '';
+        filterOptions('');
+        setTimeout(() => search.focus(), 50);
+    }
+
+    function closeDropdown() {
+        trigger.classList.remove('open');
+        menu.classList.remove('open');
+    }
+
+    function selectOption(li) {
+        const val = li.dataset.value;
+        hidden.value = val;
+        const textEl = trigger.querySelector('.dropdown-trigger-text');
+        textEl.textContent = val;
+        textEl.classList.remove('placeholder');
+        optionsList.querySelectorAll('li').forEach(l => l.classList.remove('selected'));
+        li.classList.add('selected');
+        closeDropdown();
+    }
+
+    function filterOptions(query) {
+        const q = query.toLowerCase();
+        let visible = 0;
+        optionsList.querySelectorAll('li').forEach(li => {
+            const match = li.textContent.toLowerCase().includes(q);
+            li.classList.toggle('hidden', !match);
+            if (match) visible++;
+        });
+        empty.style.display = visible === 0 ? '' : 'none';
+    }
+
+    trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (menu.classList.contains('open')) closeDropdown();
+        else openDropdown();
+    });
+
+    search.addEventListener('input', () => filterOptions(search.value));
+
+    optionsList.addEventListener('click', (e) => {
+        const li = e.target.closest('li');
+        if (li) selectOption(li);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#crimeTypeDropdown')) closeDropdown();
+    });
+
+    search.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDropdown();
+        if (e.key === 'Enter') {
+            const first = optionsList.querySelector('li:not(.hidden)');
+            if (first) selectOption(first);
+        }
+    });
+}
+
+function setCrimeTypeDropdownValue(value) {
+    const hidden = document.getElementById('formCrimeType');
+    const trigger = document.getElementById('crimeDropdownTrigger');
+    const optionsList = document.getElementById('crimeDropdownOptions');
+    if (!hidden || !trigger) return;
+
+    hidden.value = value || '';
+    const textEl = trigger.querySelector('.dropdown-trigger-text');
+
+    if (value) {
+        textEl.textContent = value;
+        textEl.classList.remove('placeholder');
+    } else {
+        textEl.textContent = '— Select Crime Type —';
+        textEl.classList.add('placeholder');
+    }
+
+    if (optionsList) {
+        optionsList.querySelectorAll('li').forEach(li => {
             li.classList.toggle('selected', li.dataset.value === value);
             li.classList.remove('hidden');
         });
@@ -525,14 +632,13 @@ function openModal(editId) {
 
     if (editId) {
         title.textContent = 'Edit Record';
-        // Read data directly from the table row — no server fetch needed
         const row = document.querySelector(`tr[data-id="${editId}"]`);
         if (row) {
             document.getElementById('editRecordId').value = editId;
             document.getElementById('formYear').value = row.dataset.year;
             document.getElementById('formMonth').value = row.dataset.month;
             setStationDropdownValue(row.dataset.station);
-            document.getElementById('formCrimeType').value = row.dataset.crimeType;
+            setCrimeTypeDropdownValue(row.dataset.crimeType);
             document.getElementById('formInvestigation').value = row.dataset.investigation;
             document.getElementById('formClosed').value = row.dataset.closed;
         } else {
@@ -544,6 +650,7 @@ function openModal(editId) {
         document.getElementById('formYear').value = new Date().getFullYear();
         document.getElementById('formMonth').value = new Date().getMonth() + 1;
         setStationDropdownValue('');
+        setCrimeTypeDropdownValue('');
     }
 
     modal.style.display = 'flex';

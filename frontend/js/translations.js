@@ -37,16 +37,16 @@ const TRANSLATIONS = {
         mr: 'एकूण गुन्हे'
     },
     underInvestigation: {
-        en: 'Under Investigation',
-        mr: 'तपासात'
+        en: 'Registered Offence',
+        mr: 'नोंदवलेले गुन्हे'
     },
     closedCases: {
-        en: 'Closed Cases',
-        mr: 'बंद प्रकरणे'
+        en: 'Detected Cases',
+        mr: 'शोधलेली प्रकरणे'
     },
     closureRate: {
-        en: 'Closure Rate',
-        mr: 'निकाल दर'
+        en: 'Detection Rate',
+        mr: 'शोध दर'
     },
     cases: {
         en: 'cases',
@@ -97,8 +97,8 @@ const TRANSLATIONS = {
         mr: 'गुन्हे प्रकार वितरण'
     },
     chartInvVsClosed: {
-        en: 'Investigation vs Closed — By Station',
-        mr: 'तपास विरुद्ध बंद — ठाणेनिहाय'
+        en: 'Registered vs Detected — By Station',
+        mr: 'नोंदवलेले विरुद्ध शोधलेले — ठाणेनिहाय'
     },
     chartHotspotRadar: {
         en: 'Crime Density Radar',
@@ -109,8 +109,8 @@ const TRANSLATIONS = {
         mr: 'महिना × ठाणे हीटमॅप'
     },
     chartClosureRate: {
-        en: 'Closure Rate by Station',
-        mr: 'ठाणेनिहाय निकाल दर'
+        en: 'Detection Rate by Station',
+        mr: 'ठाणेनिहाय शोध दर'
     },
 
     // ─── Station Dashboard ──────────────────────────────────
@@ -127,8 +127,8 @@ const TRANSLATIONS = {
         mr: 'मासिक ट्रेंड'
     },
     stationInvVsClosed: {
-        en: 'Investigation vs Closed',
-        mr: 'तपास विरुद्ध बंद'
+        en: 'Registered vs Detected',
+        mr: 'नोंदवलेले विरुद्ध शोधलेले'
     },
     stationMonthBreakdown: {
         en: 'Month-wise Breakdown',
@@ -193,12 +193,12 @@ const TRANSLATIONS = {
         mr: 'गुन्ह्याचा प्रकार'
     },
     tableInvestigation: {
-        en: 'Under Investigation',
-        mr: 'तपासात'
+        en: 'Registered Offence',
+        mr: 'नोंदवलेले गुन्हे'
     },
     tableClosed: {
-        en: 'Closed',
-        mr: 'बंद'
+        en: 'Detected',
+        mr: 'शोधलेले'
     },
 
     // ─── Misc ───────────────────────────────────────────────
@@ -317,12 +317,12 @@ const TRANSLATIONS = {
         mr: 'गुन्ह्याचा प्रकार'
     },
     thInvestigation: {
-        en: 'Under Investigation',
-        mr: 'तपासात'
+        en: 'Registered Offence',
+        mr: 'नोंदवलेले गुन्हे'
     },
     thClosed: {
-        en: 'Closed',
-        mr: 'बंद'
+        en: 'Detected',
+        mr: 'शोधलेले'
     },
 
     // ─── Admin Page ─────────────────────────────────────────
@@ -384,8 +384,8 @@ const TRANSLATIONS = {
         en: 'Begumpura',
         mr: 'बेगमपुरा'
     },
-    stationChawni: {
-        en: 'Chawni',
+    stationChhawni: {
+        en: 'Chhawni',
         mr: 'छावणी'
     },
     stationWaluj: {

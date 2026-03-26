@@ -155,12 +155,13 @@ function getDataSummary(filters = {}) {
         `SELECT year, month, police_station as policeStation, crime_type as crimeType, under_investigation as underInvestigation, closed FROM crime_records ${whereClause} ORDER BY year, month`
     ).all(params);
 
-    const totalCrimes = records.length;
-    const totalUnderInvestigation = records.reduce((s, r) => s + r.underInvestigation, 0);
+    const totalCrimes = records.reduce((s, r) => s + r.underInvestigation, 0);
     const totalClosed = records.reduce((s, r) => s + r.closed, 0);
-    const closureRate = totalUnderInvestigation + totalClosed > 0
-        ? ((totalClosed / (totalUnderInvestigation + totalClosed)) * 100).toFixed(1)
-        : 0;
+    const totalUnsolved = Math.max(0, totalCrimes - totalClosed);
+    
+    let closureRateRaw = totalCrimes > 0 ? (totalClosed / totalCrimes) * 100 : 0;
+    if (closureRateRaw > 100) closureRateRaw = 100; // Cap at 100%
+    const closureRate = closureRateRaw.toFixed(1);
 
     const years = [...new Set(records.map(r => r.year))].sort();
     const months = [...new Set(records.map(r => r.month))].sort((a, b) => a - b);
@@ -171,7 +172,7 @@ function getDataSummary(filters = {}) {
         records,
         summary: {
             totalCrimes,
-            totalUnderInvestigation,
+            totalUnsolved,
             totalClosed,
             closureRate: parseFloat(closureRate)
         },

@@ -147,7 +147,7 @@ function renderACPSelector() {
         stationsRow.className = 'station-cards-row';
 
         acpStationNames.forEach((station) => {
-            const count = grouped[station] ? grouped[station].length : 0;
+            const count = grouped[station] ? sumField(grouped[station], 'underInvestigation') : 0;
             const card = document.createElement('div');
             card.className = 'station-card';
             if (compareMode) {
@@ -199,7 +199,7 @@ function renderACPSelector() {
         stationsRow.className = 'station-cards-row';
 
         unknownStations.forEach(station => {
-            const count = grouped[station] ? grouped[station].length : 0;
+            const count = grouped[station] ? sumField(grouped[station], 'underInvestigation') : 0;
             const card = document.createElement('div');
             card.className = 'station-card';
             if (compareMode) {
@@ -297,13 +297,13 @@ function renderStationDashboard() {
     const records = getSelectedRecords();
     destroyStationCharts();
 
-    const total = records.length;
-    const inv = records.reduce((s, r) => s + r.underInvestigation, 0);
+    const total = records.reduce((s, r) => s + r.underInvestigation, 0);
     const closed = records.reduce((s, r) => s + r.closed, 0);
-    const rate = (inv + closed) > 0 ? ((closed / (inv + closed)) * 100).toFixed(1) : 0;
+    const unsolved = total - closed;
+    const rate = total > 0 ? ((closed / total) * 100).toFixed(1) : 0;
 
     setKPI('kpiTotal', total);
-    setKPI('kpiInvestigation', inv);
+    setKPI('kpiInvestigation', unsolved);
     setKPI('kpiClosed', closed);
     setKPI('kpiRate', rate + '%');
 
@@ -313,6 +313,17 @@ function renderStationDashboard() {
     renderStationStackedArea(records);    // Stacked Area (NEW)
     renderStationTable(records);
     bindChartClicks();
+
+    // Force-reveal dynamically rendered elements
+    requestAnimationFrame(() => {
+        const stationContent = document.getElementById('stationContent');
+        if (stationContent) {
+            stationContent.querySelectorAll('.reveal:not(.revealed), .reveal-scale:not(.revealed)').forEach(el => {
+                if (window._revealObserver) window._revealObserver.observe(el);
+                else el.classList.add('revealed');
+            });
+        }
+    });
 }
 
 // ─── 1. Crime Types — Horizontal Bar ────────────────────────
@@ -324,9 +335,11 @@ function renderStationCrimeTypes(records) {
 
 function getCrimeTypeCfg(records) {
     const grouped = groupBy(records, 'crimeType');
-    const sorted = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length).slice(0, 8);
+    const sorted = Object.entries(grouped)
+        .map(([ct, recs]) => [ct, sumField(recs, 'underInvestigation')])
+        .sort((a, b) => b[1] - a[1]).slice(0, 8);
     const labels = sorted.map(e => translateCrimeType(e[0]));
-    const data = sorted.map(e => e[1].length);
+    const data = sorted.map(e => e[1]);
     const maxVal = Math.max(...data, 1);
     return {
         type: 'bar',
@@ -373,15 +386,17 @@ function renderStationPolar(records) {
 }
 
 function getPolarCfg(records) {
-    const total = records.length;
+    const total = records.reduce((s, r) => s + r.underInvestigation, 0);
 
     // Top 6 crime types for readable polar chart
     const grouped = groupBy(records, 'crimeType');
-    const sorted = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
+    const sorted = Object.entries(grouped)
+        .map(([ct, recs]) => [ct, sumField(recs, 'underInvestigation')])
+        .sort((a, b) => b[1] - a[1]);
     const topN = sorted.slice(0, 6);
 
     const labels = topN.map(e => translateCrimeType(e[0]));
-    const data = topN.map(e => e[1].length);
+    const data = topN.map(e => e[1]);
 
     return {
         type: 'polarArea',
@@ -435,7 +450,7 @@ function renderStationRadar(records) {
 function getRadarCfg(records) {
     const monthData = {};
     for (let m = 1; m <= 12; m++) monthData[m] = 0;
-    records.forEach(r => { monthData[r.month] = (monthData[r.month] || 0) + 1; });
+    records.forEach(r => { monthData[r.month] = (monthData[r.month] || 0) + r.underInvestigation; });
 
     const labels = [];
     const data = [];
@@ -460,7 +475,7 @@ function getRadarCfg(records) {
                 const stRecords = records.filter(r => r.policeStation === st);
                 const stData = [];
                 for (let m = 1; m <= 12; m++) {
-                    stData.push(stRecords.filter(r => r.month === m).length);
+                    stData.push(stRecords.filter(r => r.month === m).reduce((s, r) => s + r.underInvestigation, 0));
                 }
                 datasets.push({
                     label: st,
@@ -533,7 +548,7 @@ function getStackedAreaCfg(records) {
     // Top 4 crime types for a clean, readable chart
     const crimeTypeCounts = {};
     crimeTypes.forEach(ct => {
-        crimeTypeCounts[ct] = records.filter(r => r.crimeType === ct).length;
+        crimeTypeCounts[ct] = records.filter(r => r.crimeType === ct).reduce((s, r) => s + r.underInvestigation, 0);
     });
     const sortedTypes = Object.entries(crimeTypeCounts)
         .sort((a, b) => b[1] - a[1])
@@ -543,7 +558,7 @@ function getStackedAreaCfg(records) {
     const datasets = sortedTypes.map((ct, i) => ({
         label: translateCrimeType(ct),
         data: Array.from({ length: 12 }, (_, m) =>
-            records.filter(r => r.month === (m + 1) && r.crimeType === ct).length),
+            records.filter(r => r.month === (m + 1) && r.crimeType === ct).reduce((s, r) => s + r.underInvestigation, 0)),
         borderColor: PAL[i % PAL.length],
         backgroundColor: PAL[i % PAL.length] + '30',
         fill: true,
@@ -592,8 +607,11 @@ function renderStationTable(records) {
     if (!container) return;
 
     const isACPMode = !!selectedACPGroup;
+    const MAX_ROWS = 100;
+    const displayRecords = records.slice(0, MAX_ROWS);
 
-    let html = '<table class="data-table"><thead><tr>';
+    let html = '<div style="max-height:400px;overflow-y:auto;">';
+    html += '<table class="data-table"><thead><tr>';
     if (isACPMode) html += `<th>${t('tableStation')}</th>`;
     html += `<th>${t('tableYear')}</th><th>${t('tableMonth')}</th><th>${t('tableCrimeType')}</th><th>${t('tableInvestigation')}</th><th>${t('tableClosed')}</th>`;
     html += '</tr></thead><tbody>';
@@ -603,14 +621,17 @@ function renderStationTable(records) {
     if (records.length === 0) {
         html += `<tr><td colspan="${colSpan}" style="text-align:center;padding:20px;color:#6b7280">${t('noData')}</td></tr>`;
     } else {
-        records.forEach(r => {
+        displayRecords.forEach(r => {
             html += '<tr>';
             if (isACPMode) html += `<td>${r.policeStation}</td>`;
             html += `<td>${r.year}</td><td>${getMonthName(r.month)}</td><td>${translateCrimeType(r.crimeType)}</td><td>${r.underInvestigation}</td><td>${r.closed}</td></tr>`;
         });
+        if (records.length > MAX_ROWS) {
+            html += `<tr><td colspan="${colSpan}" style="text-align:center;padding:12px;color:#6b7280;font-style:italic">Showing ${MAX_ROWS} of ${records.length} records</td></tr>`;
+        }
     }
 
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 }
 
@@ -687,10 +708,10 @@ function renderComparisonDashboard() {
 
     const stationsData = selectedStations.map((station, i) => {
         const records = filteredRecords.filter(r => r.policeStation === station);
-        const total = records.length;
-        const inv = records.reduce((s, r) => s + r.underInvestigation, 0);
+        const total = records.reduce((s, r) => s + r.underInvestigation, 0);
         const closed = records.reduce((s, r) => s + r.closed, 0);
-        const rate = (inv + closed) > 0 ? ((closed / (inv + closed)) * 100).toFixed(1) : '0.0';
+        const inv = total - closed;
+        const rate = total > 0 ? ((closed / total) * 100).toFixed(1) : '0.0';
         return { station, records, total, inv, closed, rate, color: COMPARE_COLORS[i] };
     });
 
@@ -745,7 +766,7 @@ function renderCompareCrimeTypes(stationsData) {
 
     const datasets = stationsData.map(sd => ({
         label: sd.station,
-        data: crimeTypes.map(ct => sd.records.filter(r => r.crimeType === ct).length),
+        data: crimeTypes.map(ct => sd.records.filter(r => r.crimeType === ct).reduce((s, r) => s + r.underInvestigation, 0)),
         backgroundColor: sd.color + 'cc',
         borderColor: sd.color,
         borderWidth: 1,
@@ -787,7 +808,7 @@ function renderCompareRadar(stationsData) {
     const datasets = stationsData.map(sd => {
         const data = [];
         for (let m = 1; m <= 12; m++) {
-            data.push(sd.records.filter(r => r.month === m).length);
+            data.push(sd.records.filter(r => r.month === m).reduce((s, r) => s + r.underInvestigation, 0));
         }
         return {
             label: sd.station,
@@ -832,7 +853,7 @@ function renderCompareTrend(stationsData) {
     const datasets = stationsData.map(sd => {
         const data = [];
         for (let m = 1; m <= 12; m++) {
-            data.push(sd.records.filter(r => r.month === m).length);
+            data.push(sd.records.filter(r => r.month === m).reduce((s, r) => s + r.underInvestigation, 0));
         }
         return {
             label: sd.station,

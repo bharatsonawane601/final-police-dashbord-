@@ -118,7 +118,15 @@
         <div class="filter-bar reveal" style="--d:0.05s">
             <div class="filter-group">
                 <label data-t="filterYear">Year</label>
-                <select id="filterYear"></select>
+                <div class="multi-select" id="yearMultiSelect">
+                    <button type="button" class="multi-select-trigger" id="yearSelectTrigger">
+                        <span class="multi-select-text" data-t="filterAll">All</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="multi-select-dropdown" id="yearDropdown">
+                        <div class="multi-select-options" id="yearOptions"></div>
+                    </div>
+                </div>
             </div>
             <div class="filter-group">
                 <label data-t="filterMonth">Month</label>
@@ -149,7 +157,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <div class="kpi-label" data-t="underInvestigation">Under Investigation</div>
+                    <div class="kpi-label" data-t="underInvestigation">Registered Offence</div>
                     <div class="kpi-value" id="kpiInvestigation">—</div>
                 </div>
             </div>
@@ -161,7 +169,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <div class="kpi-label" data-t="closedCases">Closed Cases</div>
+                    <div class="kpi-label" data-t="closedCases">Detected Cases</div>
                     <div class="kpi-value" id="kpiClosed">—</div>
                 </div>
             </div>
@@ -173,7 +181,7 @@
                     </svg>
                 </div>
                 <div class="kpi-info">
-                    <div class="kpi-label" data-t="closureRate">Closure Rate</div>
+                    <div class="kpi-label" data-t="closureRate">Detection Rate</div>
                     <div class="kpi-value" id="kpiRate">—</div>
                 </div>
             </div>
@@ -198,11 +206,11 @@
                 <div class="chart-wrapper"><canvas id="chartDistribution"></canvas></div>
             </div>
             <div class="chart-card reveal" style="--d:0.15s" data-chart="closureRate">
-                <div class="chart-title" data-t="chartClosureRate">Closure Rate by Station</div>
+                <div class="chart-title" data-t="chartClosureRate">Detection Rate by Station</div>
                 <div class="chart-wrapper"><canvas id="chartClosureRate"></canvas></div>
             </div>
             <div class="chart-card reveal" style="--d:0.10s" data-chart="invVsClosed">
-                <div class="chart-title" data-t="chartInvVsClosed">Investigation vs Closed</div>
+                <div class="chart-title" data-t="chartInvVsClosed">Registered vs Detected</div>
                 <div class="chart-wrapper"><canvas id="chartInvVsClosed"></canvas></div>
             </div>
             <div class="chart-card reveal" style="--d:0.15s" data-chart="radar">

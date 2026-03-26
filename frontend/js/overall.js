@@ -103,7 +103,7 @@ function renderHotspot() {
 function getHotspotConfig() {
     const grouped = groupBy(filteredRecords, 'policeStation');
     const labels = sortStationsByOrder(Object.keys(grouped));
-    const data = labels.map(s => grouped[s].length);
+    const data = labels.map(s => sumField(grouped[s], 'underInvestigation'));
     const max = Math.max(...data);
     const colors = data.map(v => {
         const r = v / max;
@@ -157,9 +157,11 @@ function renderTopCrimes() {
 
 function getTopCrimesConfig() {
     const grouped = groupBy(filteredRecords, 'crimeType');
-    const sorted = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length).slice(0, 10);
+    const sorted = Object.entries(grouped)
+        .map(([ct, recs]) => [ct, sumField(recs, 'underInvestigation')])
+        .sort((a, b) => b[1] - a[1]).slice(0, 10);
     const labels = sorted.map(e => translateCrimeType(e[0]));
-    const data = sorted.map(e => e[1].length);
+    const data = sorted.map(e => e[1]);
     const total = data.reduce((a, b) => a + b, 0);
 
     return {
@@ -208,7 +210,7 @@ function renderMonthlyTrend() {
 function getTrendConfig(canvas) {
     const monthData = {};
     for (let m = 1; m <= 12; m++) monthData[m] = 0;
-    filteredRecords.forEach(r => { monthData[r.month] = (monthData[r.month] || 0) + 1; });
+    filteredRecords.forEach(r => { monthData[r.month] = (monthData[r.month] || 0) + r.underInvestigation; });
 
     const labels = [], data = [];
     for (let m = 1; m <= 12; m++) { labels.push(getMonthName(m)); data.push(monthData[m]); }
@@ -252,12 +254,14 @@ function renderDistribution() {
 
 function getDistConfig() {
     const grouped = groupBy(filteredRecords, 'crimeType');
-    const sorted = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
+    const sorted = Object.entries(grouped)
+        .map(([ct, recs]) => [ct, sumField(recs, 'underInvestigation')])
+        .sort((a, b) => b[1] - a[1]);
     const top = sorted.slice(0, 8);
-    const othersCount = sorted.slice(8).reduce((s, e) => s + e[1].length, 0);
+    const othersCount = sorted.slice(8).reduce((s, e) => s + e[1], 0);
 
     const labels = top.map(e => translateCrimeType(e[0]));
-    const data = top.map(e => e[1].length);
+    const data = top.map(e => e[1]);
     const colors = PAL.slice(0, top.length);
 
     if (othersCount > 0) {
@@ -306,9 +310,9 @@ function getInvConfig() {
             labels,
             datasets: [
                 {
-                    label: t('underInvestigation'),
+                    label: t('totalCrimes'),
                     data: labels.map(s => sumField(grouped[s], 'underInvestigation')),
-                    backgroundColor: '#f59e0b',
+                    backgroundColor: '#6366f1',
                     borderRadius: 4,
                     barPercentage: 0.7,
                     categoryPercentage: 0.6
@@ -355,16 +359,16 @@ function getRadarConfig() {
             datasets: [
                 {
                     label: t('totalCrimes'),
-                    data: labels.map(s => grouped[s].length),
+                    data: labels.map(s => sumField(grouped[s], 'underInvestigation')),
                     borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)',
                     borderWidth: 2.5, pointBackgroundColor: '#6366f1',
                     pointBorderColor: '#fff', pointBorderWidth: 1.5, pointRadius: 4
                 },
                 {
-                    label: t('underInvestigation'),
-                    data: labels.map(s => sumField(grouped[s], 'underInvestigation')),
-                    borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)',
-                    borderWidth: 2, pointBackgroundColor: '#f59e0b',
+                    label: t('closedCases'),
+                    data: labels.map(s => sumField(grouped[s], 'closed')),
+                    borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
+                    borderWidth: 2, pointBackgroundColor: '#10b981',
                     pointBorderColor: '#fff', pointBorderWidth: 1.5, pointRadius: 3
                 }
             ]
@@ -402,7 +406,7 @@ function renderHeatmap() {
     stations.forEach(s => {
         matrix[s] = {};
         for (let m = 1; m <= 12; m++) matrix[s][m] = 0;
-        grouped[s].forEach(r => { matrix[s][r.month]++; if (matrix[s][r.month] > gMax) gMax = matrix[s][r.month]; });
+        grouped[s].forEach(r => { matrix[s][r.month] += r.underInvestigation; if (matrix[s][r.month] > gMax) gMax = matrix[s][r.month]; });
     });
 
     let html = '<table class="heatmap-table"><thead><tr>';
@@ -448,9 +452,8 @@ function getClosureConfig() {
     const grouped = groupBy(filteredRecords, 'policeStation');
     const labels = sortStationsByOrder(Object.keys(grouped));
     const rates = labels.map(s => {
-        const inv = sumField(grouped[s], 'underInvestigation');
+        const total = sumField(grouped[s], 'underInvestigation');
         const cl = sumField(grouped[s], 'closed');
-        const total = inv + cl;
         return total > 0 ? parseFloat(((cl / total) * 100).toFixed(1)) : 0;
     });
 

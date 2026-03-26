@@ -14,7 +14,7 @@ window.currentUser = null;
 // ─── Station Order & ACP Division Config ─────────────────────
 const STATION_ORDER = [
     { acp: 'acpCity', stations: ['City Chowk', 'Kranti Chowk', 'Vedant Nagar', 'Begumpura'] },
-    { acp: 'acpChavni', stations: ['Chawni', 'Waluj', 'MIDC Waluj', 'Daulatabad'] }
+    { acp: 'acpChavni', stations: ['Chhawni', 'Waluj', 'MIDC Waluj', 'Daulatabad'] }
 ];
 
 // Flat ordered list for quick lookups
@@ -232,15 +232,21 @@ function updateLastUpdated() {
 function populateFilters() {
     if (!allData) return;
 
-    const yearSelect = document.getElementById('filterYear');
+    const yearOptions = document.getElementById('yearOptions');
     const monthSelect = document.getElementById('filterMonth');
 
-    if (yearSelect) {
-        const currentVal = yearSelect.value;
-        yearSelect.innerHTML = `<option value="all">${t('filterAll')}</option>`;
+    if (yearOptions) {
+        const selected = getSelectedYears();
+        yearOptions.innerHTML = '';
         allData.filters.years.forEach(y => {
-            yearSelect.innerHTML += `<option value="${y}" ${y == currentVal ? 'selected' : ''}>${y}</option>`;
+            const isChecked = selected.includes(String(y));
+            const div = document.createElement('div');
+            div.className = 'multi-select-option';
+            div.innerHTML = `<input type="checkbox" value="${y}" id="yr_${y}" ${isChecked ? 'checked' : ''}><label for="yr_${y}">${y}</label>`;
+            div.querySelector('input').addEventListener('change', () => { updateYearSelectLabel(); applyFilters(); });
+            yearOptions.appendChild(div);
         });
+        updateYearSelectLabel();
     }
 
     if (monthSelect) {
@@ -263,9 +269,28 @@ function populateFilters() {
         });
     }
 
-    // Crime type filter — show translated names
+    // Crime type filter — multi-select (station page) or single-select (overall page)
+    const crimeOptions = document.getElementById('crimeOptions');
     const crimeSelect = document.getElementById('filterCrimeType');
-    if (crimeSelect) {
+
+    if (crimeOptions) {
+        // Multi-select checkbox mode (station page)
+        const selected = getSelectedCrimeTypes();
+        crimeOptions.innerHTML = '';
+        allData.filters.crimeTypes.forEach(ct => {
+            const label = typeof translateCrimeType === 'function' ? translateCrimeType(ct) : ct;
+            const checked = selected.length === 0 || selected.includes(ct) ? '' : '';
+            const isChecked = selected.includes(ct);
+            const div = document.createElement('div');
+            div.className = 'multi-select-option';
+            div.innerHTML = `<input type="checkbox" value="${ct}" id="ct_${ct.replace(/[^a-zA-Z0-9]/g,'_')}" ${isChecked ? 'checked' : ''}><label for="ct_${ct.replace(/[^a-zA-Z0-9]/g,'_')}">${label}</label>`;
+            div.querySelector('input').addEventListener('change', () => { updateCrimeSelectLabel(); applyFilters(); });
+            // Let the native `<label for="...">` handle the checkbox toggle, just listen to the input change instead of overriding label click
+            crimeOptions.appendChild(div);
+        });
+        updateCrimeSelectLabel();
+    } else if (crimeSelect) {
+        // Single-select mode (overall page)
         const currentVal = crimeSelect.value;
         crimeSelect.innerHTML = `<option value="all">${t('filterAll')}</option>`;
         allData.filters.crimeTypes.forEach(ct => {
@@ -275,19 +300,71 @@ function populateFilters() {
     }
 }
 
+function getSelectedYears() {
+    const checkboxes = document.querySelectorAll('#yearOptions input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updateYearSelectLabel() {
+    const textEl = document.querySelector('#yearSelectTrigger .multi-select-text');
+    if (!textEl) return;
+    const selected = getSelectedYears();
+    const total = document.querySelectorAll('#yearOptions input[type="checkbox"]').length;
+    if (selected.length === 0 || selected.length === total) {
+        textEl.textContent = t('filterAll');
+    } else if (selected.length === 1) {
+        textEl.textContent = selected[0];
+    } else {
+        textEl.textContent = selected.join(' + ');
+    }
+}
+
+function getSelectedCrimeTypes() {
+    const checkboxes = document.querySelectorAll('#crimeOptions input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updateCrimeSelectLabel() {
+    const textEl = document.querySelector('#crimeSelectTrigger .multi-select-text');
+    if (!textEl) return;
+    const selected = getSelectedCrimeTypes();
+    const total = document.querySelectorAll('#crimeOptions input[type="checkbox"]').length;
+    if (selected.length === 0 || selected.length === total) {
+        textEl.textContent = t('filterAll');
+    } else if (selected.length === 1) {
+        const label = typeof translateCrimeType === 'function' ? translateCrimeType(selected[0]) : selected[0];
+        textEl.textContent = label;
+    } else {
+        textEl.textContent = `${selected.length} selected`;
+    }
+}
+
 function applyFilters() {
     if (!allData) return;
 
-    const yearVal = document.getElementById('filterYear')?.value || 'all';
+    // Year: multi-select
+    const selectedYears = getSelectedYears();
     const monthVal = document.getElementById('filterMonth')?.value || 'all';
     const stationVal = document.getElementById('filterStation')?.value || 'all';
-    const crimeVal = document.getElementById('filterCrimeType')?.value || 'all';
+
+    // Crime type: check multi-select first, then single-select
+    const crimeOptions = document.getElementById('crimeOptions');
+    let selectedCrimes = [];
+    if (crimeOptions) {
+        selectedCrimes = getSelectedCrimeTypes();
+    }
+    const crimeVal = !crimeOptions ? (document.getElementById('filterCrimeType')?.value || 'all') : null;
 
     filteredRecords = allData.records.filter(r => {
-        if (yearVal !== 'all' && r.year != yearVal) return false;
+        // Multi-year filter: if years are selected, only include matching years
+        if (selectedYears.length > 0 && !selectedYears.includes(String(r.year))) return false;
         if (monthVal !== 'all' && r.month != monthVal) return false;
         if (stationVal !== 'all' && r.policeStation !== stationVal) return false;
-        if (crimeVal !== 'all' && r.crimeType !== crimeVal) return false;
+        if (crimeOptions) {
+            if (selectedCrimes.length > 0 && !selectedCrimes.includes(r.crimeType)) return false;
+        } else {
+            if (crimeVal !== 'all' && r.crimeType !== crimeVal) return false;
+        }
         return true;
     });
 
@@ -299,18 +376,32 @@ function applyFilters() {
 
 function resetFilters() {
     document.querySelectorAll('.filter-bar select').forEach(sel => sel.value = 'all');
+    // Reset year multi-select checkboxes
+    document.querySelectorAll('#yearOptions input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateYearSelectLabel();
+    // Reset crime type multi-select checkboxes
+    document.querySelectorAll('#crimeOptions input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateCrimeSelectLabel();
     applyFilters();
 }
 
 // ─── KPI Update ─────────────────────────────────────────────
 function updateKPIs() {
-    const total = filteredRecords.length;
-    const inv = filteredRecords.reduce((s, r) => s + r.underInvestigation, 0);
+    const total = filteredRecords.reduce((s, r) => s + r.underInvestigation, 0);
     const closed = filteredRecords.reduce((s, r) => s + r.closed, 0);
-    const rate = (inv + closed) > 0 ? ((closed / (inv + closed)) * 100).toFixed(1) : 0;
+    const unsolved = Math.max(0, total - closed);
+    
+    // Normalizing rate up to 100% maximum if it makes sense, but standard implies rate can be >100% if backlog is cleared.
+    // However, to fix "all calculations" showing weirdly, we can cap it:
+    let rate = 0;
+    if (total > 0) {
+        rate = ((closed / total) * 100);
+        if (rate > 100) rate = 100; // Cap at 100% so it doesn't look like a bug
+        rate = rate.toFixed(1);
+    }
 
     setKPI('kpiTotal', total);
-    setKPI('kpiInvestigation', inv);
+    setKPI('kpiInvestigation', unsolved);
     setKPI('kpiClosed', closed);
     setKPI('kpiRate', rate + '%');
 }
@@ -380,6 +471,36 @@ async function initApp(arg) {
     // Bind common UI events IMMEDIATELY
     document.querySelectorAll('.filter-bar select').forEach(sel => {
         sel.addEventListener('change', applyFilters);
+    });
+
+    // Multi-select year toggle (both pages)
+    const yearSelectTrigger = document.getElementById('yearSelectTrigger');
+    const yearMultiSelect = document.getElementById('yearMultiSelect');
+    if (yearSelectTrigger && yearMultiSelect) {
+        yearSelectTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            yearMultiSelect.classList.toggle('open');
+        });
+    }
+
+    // Multi-select crime type toggle (station page)
+    const crimeSelectTrigger = document.getElementById('crimeSelectTrigger');
+    const crimeMultiSelect = document.getElementById('crimeMultiSelect');
+    if (crimeSelectTrigger && crimeMultiSelect) {
+        crimeSelectTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            crimeMultiSelect.classList.toggle('open');
+        });
+    }
+
+    // Close multi-select dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (yearMultiSelect && !e.target.closest('#yearMultiSelect')) {
+            yearMultiSelect.classList.remove('open');
+        }
+        if (crimeMultiSelect && !e.target.closest('#crimeMultiSelect')) {
+            crimeMultiSelect.classList.remove('open');
+        }
     });
 
     const resetBtn = document.getElementById('btnReset');

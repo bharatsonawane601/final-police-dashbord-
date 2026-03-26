@@ -142,7 +142,7 @@ app.get('/login.html', (req, res) => {
 
 // Serve static assets (CSS, JS, images, fonts, libs) without auth
 // Cache for 24h — browser reuses from disk cache on tab switches
-const staticOpts = { maxAge: '1d', etag: true, lastModified: true };
+const staticOpts = { maxAge: '0', etag: true, lastModified: true };
 app.use('/css', express.static(path.join(__dirname, '..', 'frontend', 'css'), staticOpts));
 app.use('/js', express.static(path.join(__dirname, '..', 'frontend', 'js'), staticOpts));
 app.use('/img', express.static(path.join(__dirname, '..', 'frontend', 'img'), staticOpts));
@@ -182,11 +182,100 @@ app.get('/admin.html', (req, res, next) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  KeyAuth Configuration & Startup Validation
+// ═══════════════════════════════════════════════════════════════
+const KEYAUTH_CONFIG = {
+    name: "Bharatsonawane260's Application",
+    ownerid: 'Yi3JM6OEsn',
+    secret: '7d2ed0edcd2dd5b84f15d7600d49b26c4535274b225fc871d67411b9a7f46f5c',
+    version: '1.0',
+    apiUrl: 'https://keyauth.win/api/1.2/',
+    licenseKey: 'KEYAUTH-zATYIm-D3edAm-57gSTs-jmnqDp-4DMlr1-TY9QHQ',
+    hwid: 'zone1-crime-intelligence-server-001'
+};
+
+// Cache: validated once at startup, re-checked every 1 hour
+let keyAuthValid = false;
+let keyAuthLastCheck = 0;
+const KEYAUTH_CHECK_INTERVAL = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Validate the application license with KeyAuth.
+ * Uses init to confirm app exists + license check with HWID.
+ */
+async function validateKeyAuth() {
+    try {
+        // Init session
+        const initRes = await fetch(KEYAUTH_CONFIG.apiUrl, {
+            method: 'POST',
+            body: new URLSearchParams({
+                type: 'init',
+                ver: KEYAUTH_CONFIG.version,
+                name: KEYAUTH_CONFIG.name,
+                ownerid: KEYAUTH_CONFIG.ownerid
+            }),
+            signal: AbortSignal.timeout(10000)
+        });
+        const initData = await initRes.json();
+
+        if (!initData.success) {
+            console.error('  [KeyAuth] Init failed:', initData.message);
+            return false;
+        }
+
+        // Validate license key
+        const licRes = await fetch(KEYAUTH_CONFIG.apiUrl, {
+            method: 'POST',
+            body: new URLSearchParams({
+                type: 'license',
+                key: KEYAUTH_CONFIG.licenseKey,
+                sessionid: initData.sessionid,
+                name: KEYAUTH_CONFIG.name,
+                ownerid: KEYAUTH_CONFIG.ownerid,
+                hwid: KEYAUTH_CONFIG.hwid
+            }),
+            signal: AbortSignal.timeout(10000)
+        });
+        const licData = await licRes.json();
+
+        // "Logged in!" means the key was already registered and is still valid
+        // "success":true means first-time registration succeeded
+        if (licData.success) {
+            console.log('  [KeyAuth] ✓ License valid');
+            return true;
+        }
+
+        // "already been used" with same HWID = already registered = VALID
+        // KeyAuth returns this when the key is bound to this HWID already
+        const msg = (licData.message || '').toLowerCase();
+        if (msg.includes('already') || msg.includes('logged in')) {
+            console.log('  [KeyAuth] ✓ License already registered (valid)');
+            return true;
+        }
+
+        console.error('  [KeyAuth] ✗ License invalid:', licData.message);
+        return false;
+    } catch (err) {
+        console.error('  [KeyAuth] Error:', err.message);
+        return false;
+    }
+}
+
+// Run initial validation at startup
+(async () => {
+    keyAuthValid = await validateKeyAuth();
+    keyAuthLastCheck = Date.now();
+    if (!keyAuthValid) {
+        console.error('  [KeyAuth] ⚠ WARNING: License validation failed. Login will be blocked.');
+    }
+})();
+
+// ═══════════════════════════════════════════════════════════════
 //  Auth Routes (Public)
 // ═══════════════════════════════════════════════════════════════
 
-// Login
-app.post('/api/login', loginLimiter, (req, res) => {
+// Login (with background KeyAuth license validation)
+app.post('/api/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -194,7 +283,17 @@ app.post('/api/login', loginLimiter, (req, res) => {
             return res.status(400).json({ error: 'Username and password are required' });
         }
 
-        // Sanitize input
+        // Re-check KeyAuth if cache expired (every 1 hour)
+        if (Date.now() - keyAuthLastCheck > KEYAUTH_CHECK_INTERVAL) {
+            keyAuthValid = await validateKeyAuth();
+            keyAuthLastCheck = Date.now();
+        }
+
+        if (!keyAuthValid) {
+            return res.status(403).json({ error: 'Application license expired or invalid. Contact administrator.' });
+        }
+
+        // Step 2: Authenticate username/password locally
         const cleanUsername = String(username).trim().toLowerCase().slice(0, 50);
         const cleanPassword = String(password).slice(0, 128);
 
@@ -219,6 +318,7 @@ app.post('/api/login', loginLimiter, (req, res) => {
             user: { username: user.username, role: user.role }
         });
     } catch (err) {
+        console.error('  [Login] Error:', err.message);
         res.status(500).json({ error: 'Login failed' });
     }
 });
@@ -595,7 +695,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('  ║   Zone 1 Crime Intelligence System           ║');
     console.log('  ║   झोन 1 गुन्हे गुप्तचर प्रणाली                  ║');
     console.log('  ╠══════════════════════════════════════════════╣');
-    console.log(`  ║   Local:   http://10.1.68.130:${PORT}           ║`);
+    console.log(`  ║   Local:   http://localhost:${PORT}           ║`);
     console.log(`  ║   Network: http://${localIP}:${PORT}`.padEnd(48) + '║');
     console.log(`  ║   Excel:   ${(EXCEL_PATH ? path.basename(EXCEL_PATH) : 'Not connected').substring(0, 30).padEnd(30)}   ║`);
     console.log(`  ║   Records: ${String(recordCount).padEnd(30)}   ║`);

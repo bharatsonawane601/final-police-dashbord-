@@ -118,7 +118,15 @@
         <div class="filter-bar reveal" style="--d:0.05s">
             <div class="filter-group">
                 <label data-t="filterYear">Year</label>
-                <select id="filterYear"></select>
+                <div class="multi-select" id="yearMultiSelect">
+                    <button type="button" class="multi-select-trigger" id="yearSelectTrigger">
+                        <span class="multi-select-text" data-t="filterAll">All</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="multi-select-dropdown" id="yearDropdown">
+                        <div class="multi-select-options" id="yearOptions"></div>
+                    </div>
+                </div>
             </div>
             <div class="filter-group">
                 <label data-t="filterMonth">Month</label>
@@ -126,7 +134,15 @@
             </div>
             <div class="filter-group">
                 <label data-t="filterCrimeType">Crime Type</label>
-                <select id="filterCrimeType"></select>
+                <div class="multi-select" id="crimeMultiSelect">
+                    <button type="button" class="multi-select-trigger" id="crimeSelectTrigger">
+                        <span class="multi-select-text" data-t="filterAll">All</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="multi-select-dropdown" id="crimeDropdown">
+                        <div class="multi-select-options" id="crimeOptions"></div>
+                    </div>
+                </div>
             </div>
             <button class="btn-reset" id="btnReset" data-t="filterReset">Reset Filters</button>
         </div>
@@ -177,7 +193,7 @@
                         </svg>
                     </div>
                     <div class="kpi-info">
-                        <div class="kpi-label" data-t="underInvestigation">Under Investigation</div>
+                        <div class="kpi-label" data-t="underInvestigation">Registered Offence</div>
                         <div class="kpi-value" id="kpiInvestigation">—</div>
                     </div>
                 </div>
@@ -189,7 +205,7 @@
                         </svg>
                     </div>
                     <div class="kpi-info">
-                        <div class="kpi-label" data-t="closedCases">Closed Cases</div>
+                        <div class="kpi-label" data-t="closedCases">Detected Cases</div>
                         <div class="kpi-value" id="kpiClosed">—</div>
                     </div>
                 </div>
@@ -201,7 +217,7 @@
                         </svg>
                     </div>
                     <div class="kpi-info">
-                        <div class="kpi-label" data-t="closureRate">Closure Rate</div>
+                        <div class="kpi-label" data-t="closureRate">Detection Rate</div>
                         <div class="kpi-value" id="kpiRate">—</div>
                     </div>
                 </div>
