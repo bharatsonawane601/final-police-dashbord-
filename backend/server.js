@@ -22,21 +22,10 @@ const PORT = 5000;
 // ═══════════════════════════════════════════════════════════════
 
 // Gzip/Brotli compression — reduces transfer sizes by 70-80%
-app.use(compression({ level: 6, threshold: 512 }));
-
-// Helmet — secure HTTP headers
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            fontSrc: ["'self'"],
-            imgSrc: ["'self'", "data:"],
-            connectSrc: ["'self'"]
-        }
-    },
-    crossOriginEmbedderPolicy: false
+    contentSecurityPolicy: false,   // 🔥 disable CSP (fixes loading issues)
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false  // 🔥 fixes COOP error
 }));
 
 // CORS — restrict to same origin
